@@ -20,6 +20,7 @@ jobs:
       with:
         sha: ${{ github.event.workflow_run.head_sha }}
         token: ${{ secrets.GITHUB_TOKEN }}
+        name: sonarcloud
         status: in_progress
 
     - uses: actions/checkout@v4
@@ -93,5 +94,6 @@ jobs:
       with:
         sha: ${{ github.event.workflow_run.head_sha }}
         token: ${{ secrets.GITHUB_TOKEN }}
+        name: sonarcloud
         status: completed
         conclusion: ${{ job.status }}
