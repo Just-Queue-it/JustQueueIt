@@ -65,7 +65,7 @@ namespace rest
             GET,
             POST,
             PUT,
-            DELETE,
+            DELETE_, // NOLINT
             PATCH,
             HEAD,
             OPTIONS,

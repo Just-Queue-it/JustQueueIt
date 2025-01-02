@@ -75,7 +75,7 @@ namespace rest
             case http::verb::get: return rest::Request::Method::GET;
             case http::verb::post: return rest::Request::Method::POST;
             case http::verb::put: return rest::Request::Method::PUT;
-            case http::verb::delete_: return rest::Request::Method::DELETE;
+            case http::verb::delete_: return rest::Request::Method::DELETE_;
             case http::verb::patch: return rest::Request::Method::PATCH;
             case http::verb::head: return rest::Request::Method::HEAD;
             case http::verb::options: return rest::Request::Method::OPTIONS;

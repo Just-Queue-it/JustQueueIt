@@ -56,7 +56,7 @@ namespace backend
             return rest::Router::SerializableResponse<Task>{.status_code = rest::Response::Status::NOT_FOUND, .body = "Not found"};
         });
 
-        router.AddRoute("/tasks/{:id}", rest::Request::Method::DELETE, [tasks_manager](const rest::None&, const rest::Router::Params& params) {
+        router.AddRoute("/tasks/{:id}", rest::Request::Method::DELETE_, [tasks_manager](const rest::None&, const rest::Router::Params& params) {
             const auto id = SafeStoull(params.at("id"));
             if (!id)
                 throw std::runtime_error{"Can't parse id of task"};
