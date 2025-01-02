@@ -34,6 +34,9 @@ namespace rest
 
     std::optional<rest::ContentType> ParseContentType(std::string_view content_type)
     {
+        if (content_type.empty())
+            return rest::ContentType::ApplicationJson;
+
         for (auto [_, type] : rfl::get_enumerator_array<rest::ContentType>())
             if (ParseContentType(type) == content_type)
                 return type;

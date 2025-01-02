@@ -94,7 +94,7 @@ namespace rest
             // Find and call the handler
             auto handler_it = route.handlers.find(req.method);
             if (handler_it == route.handlers.end())
-                return Response{.status_code = Response::Status::MethodNotAllowed, .content_type = ContentType::TextPlain};
+                return Response{.status_code = Response::Status::MethodNotAllowed, .body = "Method not allowed", .content_type = ContentType::TextPlain};
 
             try
             {
@@ -105,7 +105,7 @@ namespace rest
                 return Response{.status_code = Response::Status::InternalServerError, .body = e.what(), .content_type = ContentType::TextPlain};
             }
         }
-        return Response{.status_code = Response::Status::NotFound, .content_type = ContentType::TextPlain};
+        return Response{.status_code = Response::Status::NotFound, .body = "Not found", .content_type = ContentType::TextPlain};
     }
 
 } // namespace rest

@@ -71,6 +71,7 @@ namespace rest
         {
             switch (method)
             {
+            case http::verb::unknown:
             case http::verb::get: return rest::Request::Method::Get;
             case http::verb::post: return rest::Request::Method::Post;
             case http::verb::put: return rest::Request::Method::Put;
@@ -88,7 +89,7 @@ namespace rest
             res.result(static_cast<uint16_t>(response.status_code.get()));
             res.set(http::field::server, "JustQueueIt");
             res.set(http::field::content_type, ParseContentType(response.content_type));
-            res.body() = response.body;
+            res.body() = response.body + "\n";
             res.prepare_payload();
             return res;
         }
@@ -103,7 +104,7 @@ namespace rest
             if (!content_type)
                 return Response{.status_code = Response::Status::BadRequest, .body = "Unsupported or unknown content type", .content_type = rest::ContentType::TextPlain};
 
-            const auto accept_content_type = ParseContentType(req[http::field::accept]);
+            const auto accept_content_type = req[http::field::accept] != "*/*" ? ParseContentType(req[http::field::accept]) : content_type;
             if (!accept_content_type)
                 return Response{.status_code = Response::Status::BadRequest, .body = "Unsupported or unknown accept content type", .content_type = rest::ContentType::TextPlain};
 
