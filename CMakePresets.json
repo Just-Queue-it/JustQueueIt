@@ -87,19 +87,19 @@
             "binaryDir": "${sourceDir}/build"
         },
         {
-            "name": "ci-gcc-11",
+            "name": "ci-gcc-14",
             "hidden": true,
             "environment": {
-                "CC": "gcc-11",
-                "CXX": "g++-11"
+                "CC": "gcc-14",
+                "CXX": "g++-14"
             }
         },
         {
-            "name": "ci-clang-15",
+            "name": "ci-clang-18",
             "hidden": true,
             "environment": {
-                "CC": "clang-15",
-                "CXX": "clang++-15"
+                "CC": "clang-18",
+                "CXX": "clang++-18"
             }
         },
         {
@@ -125,42 +125,42 @@
         },
         {
             "name": "ci-coverage-clang",
-            "inherits": ["ci-build", "flags-unix", "ci-clang-15"],
+            "inherits": ["ci-build", "flags-unix", "ci-clang-18"],
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "-O0 -g -fprofile-instr-generate -fcoverage-mapping"
             }
         },
         {
             "name": "ci-sanitize-tsan",
-            "inherits": ["ci-build","flags-unix","ci-clang-15"],
+            "inherits": ["ci-build","flags-unix","ci-clang-18"],
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "-fsanitize=thread -g -O1"
             }
         },
         {
             "name": "ci-sanitize-asan",
-            "inherits": ["ci-build","flags-unix","ci-clang-15"],
+            "inherits": ["ci-build","flags-unix","ci-clang-18"],
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
             }
         },
         {
             "name": "ci-sanitize-lsan",
-            "inherits": ["ci-build","flags-unix","ci-clang-15"],
+            "inherits": ["ci-build","flags-unix","ci-clang-18"],
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "-fsanitize=leak -fno-omit-frame-pointer -g -O1"
             }
         },
         {
             "name": "ci-sanitize-msan",
-            "inherits": ["ci-build","flags-unix","ci-clang-15"],
+            "inherits": ["ci-build","flags-unix","ci-clang-18"],
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "-fsanitize=memory -fno-optimize-sibling-calls -fsanitize-memory-track-origins=2 -fno-omit-frame-pointer -g -O2"
             }
         },
         {
             "name": "ci-sanitize-ubsan",
-            "inherits": ["ci-build","flags-unix","ci-clang-15"],
+            "inherits": ["ci-build","flags-unix","ci-clang-18"],
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS": "-fsanitize=undefined"
             }
@@ -171,12 +171,12 @@
 
         {
             "name": "ci-ubuntu-gcc-tests",
-            "inherits": ["flags-unix","ci-build", "ci-gcc-11"],
+            "inherits": ["flags-unix","ci-build", "ci-gcc-14"],
             "condition": {"type": "equals","lhs": "${hostSystemName}","rhs": "Linux"}
         },
         {
             "name": "ci-ubuntu-clang-tests",
-            "inherits": ["flags-unix","ci-build", "ci-clang-15"],
+            "inherits": ["flags-unix","ci-build", "ci-clang-18"],
             "condition": {"type": "equals","lhs": "${hostSystemName}","rhs": "Linux"}
         },
         {
