@@ -45,23 +45,23 @@ namespace utils
     template<class R>
     struct FunctionTraits<R (*)()>
     {
-        using result = R;
+        using Result = R;
     };
 
     // Classical global function
     template<class R, class... Args>
     struct FunctionTraits<R (*)(Args...)>
     {
-        using result    = R;
-        using arguments = std::tuple<std::decay_t<Args>...>;
+        using Result    = R;
+        using Arguments = std::tuple<std::decay_t<Args>...>;
 
         template<std::size_t I = 0>
             requires (sizeof...(Args) > I)
-        using argument = typename std::tuple_element_t<I, arguments>;
+        using Argument = typename std::tuple_element_t<I, Arguments>;
     };
 
     template<typename T, std::size_t I = 0>
-    using DecayedFunctionArgument = typename FunctionTraits<T>::template argument<I>;
+    using DecayedFunctionArgument = typename FunctionTraits<T>::template Argument<I>;
 
     template<typename Fn, typename... Args>
     using DecayedInvokeResult = std::decay_t<std::invoke_result_t<Fn, Args...>>;

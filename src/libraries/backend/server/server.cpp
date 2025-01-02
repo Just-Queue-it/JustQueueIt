@@ -39,24 +39,24 @@ namespace backend
     {
         rest::Router router{};
 
-        router.AddRoute("/tasks", rest::Request::Method::Get, [tasks_manager](const rest::None&, const rest::Router::Params&) {
+        router.AddRoute("/tasks", rest::Request::Method::GET, [tasks_manager](const rest::None&, const rest::Router::Params&) {
             return tasks_manager.GetTasks();
         });
 
-        router.AddRoute("/tasks", rest::Request::Method::Post, [tasks_manager](const TaskPayload& task, const rest::Router::Params&) {
+        router.AddRoute("/tasks", rest::Request::Method::POST, [tasks_manager](const TaskPayload& task, const rest::Router::Params&) {
             return tasks_manager.CreateTask(task);
         });
 
-        router.AddRoute("/tasks/{:id}", rest::Request::Method::Get, [tasks_manager](const rest::None&, const rest::Router::Params& params) {
+        router.AddRoute("/tasks/{:id}", rest::Request::Method::GET, [tasks_manager](const rest::None&, const rest::Router::Params& params) {
             const auto id = SafeStoull(params.at("id"));
             if (!id)
                 throw std::runtime_error{"Can't parse id of task"};
             if (const auto task = tasks_manager.GetTask(id.value()))
-                return rest::Router::SerializableResponse<Task>{.status_code = rest::Response::Status::Ok, .body = task.value()};
-            return rest::Router::SerializableResponse<Task>{.status_code = rest::Response::Status::NotFound, .body = "Not found"};
+                return rest::Router::SerializableResponse<Task>{.status_code = rest::Response::Status::OK, .body = task.value()};
+            return rest::Router::SerializableResponse<Task>{.status_code = rest::Response::Status::NOT_FOUND, .body = "Not found"};
         });
 
-        router.AddRoute("/tasks/{:id}", rest::Request::Method::Delete, [tasks_manager](const rest::None&, const rest::Router::Params& params) {
+        router.AddRoute("/tasks/{:id}", rest::Request::Method::DELETE, [tasks_manager](const rest::None&, const rest::Router::Params& params) {
             const auto id = SafeStoull(params.at("id"));
             if (!id)
                 throw std::runtime_error{"Can't parse id of task"};
