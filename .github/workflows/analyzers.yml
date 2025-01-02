@@ -1,0 +1,84 @@
+name: Analyzers/sanitizers
+
+on:
+  workflow_run:
+    workflows:
+      - "CI"
+    types:
+      - completed
+
+
+jobs:
+  sonarcloud_and_coverage:
+    runs-on: ubuntu-latest
+
+    if: github.repository_owner == 'Just-Queue-it' && github.event.workflow_run.conclusion == 'success'
+
+    steps:
+    - uses: haya14busa/action-workflow_run-status@main
+
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
+        repository: ${{ github.event.workflow_run.head_repository.full_name }}
+        ref: ${{ github.event.workflow_run.head_branch }}
+
+    - name: Install llvm
+      run: sudo apt-get update -q && sudo apt-get install llvm -q -y
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.6.x - 3.11.x'
+
+    - name: get conan
+      uses: turtlebrowser/get-conan@main
+
+    - name: cache deps
+      uses: actions/cache@v4
+      with:
+          path: |
+            ~/.conan2
+            /Users/runner/.conan2/
+          key: deps-ci-ubuntu-clang-Release-${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('**/CMakePresets.json') }}
+          restore-keys: deps-ci-ubuntu-clang-Release
+
+    - name: conan detect profile
+      run: |
+        conan profile detect --force
+
+    - name:  Install sonar-scanner and build-wrapper
+      uses: sonarsource/sonarcloud-github-c-cpp@v3
+
+    - name: Run CMake
+      uses: lukka/run-cmake@v10
+      with:
+        configurePreset: ci-coverage-clang
+        buildPreset: ci-build
+        testPreset: ci-tests
+
+    - name: Process coverage info
+      run: cmake --build build -t coverage
+
+    - name: "Get PR information"
+      uses: potiuk/get-workflow-origin@v1_3
+      id: source-run-info
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        sourceRunId: ${{ github.event.workflow_run.id }}
+
+    - name: Run sonar-scanner on PUSH
+      if: github.event.workflow_run.event == 'push'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        sonar-scanner --define sonar.scm.revision=${{ github.event.workflow_run.head_sha }}
+
+    - name: Run sonar-scanner on PullRequest
+      if: github.event.workflow_run.event == 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: |
+        sonar-scanner --define sonar.scm.revision=${{ github.event.workflow_run.head_sha }} --define sonar.pullrequest.key=${{ steps.source-run-info.outputs.pullRequestNumber }} --define sonar.pullrequest.branch=${{ steps.source-run-info.outputs.sourceHeadBranch }} --define sonar.pullrequest.base=${{ steps.source-run-info.outputs.targetBranch }}

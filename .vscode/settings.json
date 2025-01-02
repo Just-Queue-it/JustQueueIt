@@ -1,0 +1,14 @@
+{
+    "clangd.arguments": [
+      "--header-insertion=never",
+      "--background-index",
+      "--clang-tidy",
+      "-j=32",
+      "--function-arg-placeholders=0"
+    ],
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "sonarlint.connectedMode.project": {
+      "connectionId": "Just-Queue-it",
+      "projectKey": "Just-Queue-it_JustQueueIt"
+    }
+}

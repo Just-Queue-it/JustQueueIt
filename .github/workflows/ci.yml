@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - main
+
+  pull_request:
+    branches:
+    - main
+
+  schedule:
+    - cron: '0 0 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+    cache_deps:
+      strategy:
+          matrix:
+              config: [{name: ci-ubuntu-gcc,  os: ubuntu-latest},
+                      {name: ci-ubuntu-clang, os: ubuntu-latest},
+                      {name: ci-windows,      os: windows-latest},
+                      {name: ci-macos,        os: macos-latest}]
+              build_type: [{config: Release}]
+
+      timeout-minutes: 120
+      runs-on: ${{ matrix.config.os }}
+      name: Cache deps on ${{ matrix.config.name }} for ${{ matrix.build_type.config }}
+
+      steps:
+      - uses: actions/checkout@v4
+        with:
+            fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.6.x - 3.11.x'
+
+      - name: get conan
+        uses: turtlebrowser/get-conan@main
+
+      - name: check cache
+        uses: actions/cache@v4
+        id: check_cache
+        with:
+            path: |
+              ~/.conan2
+              /Users/runner/.conan2/
+            key: deps-${{ matrix.config.name }}-${{ matrix.build_type.config }}-${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('**/CMakePresets.json') }}
+            restore-keys: deps-${{ matrix.config.name }}-${{ matrix.build_type.config }}
+            lookup-only: true
+
+      - name: conan detect profile
+        if: steps.check_cache.outputs.cache-hit != 'true' || github.event_name == 'schedule'
+        run: |
+          conan profile detect --force
+
+      - name: Run CMake
+        if: steps.check_cache.outputs.cache-hit != 'true' || github.event_name == 'schedule'
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: ${{ matrix.config.name }}-tests
+          configurePresetAdditionalArgs: "['-DCMAKE_BUILD_TYPE=${{ matrix.build_type.config }}', '-DCMAKE_CONFIGURATION_TYPES=${{ matrix.build_type.config }}']"
+
+    sanitize:
+      needs: ["cache_deps"]
+
+      strategy:
+          matrix:
+              sanitizer: ["tsan", "asan", "lsan", "ubsan"]
+
+      name: Sanitize - ${{ matrix.sanitizer }}
+      runs-on: ubuntu-latest
+      timeout-minutes: 15
+
+      steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.6.x - 3.11.x'
+
+      - name: get conan
+        uses: turtlebrowser/get-conan@main
+
+      - name: cache deps
+        uses: actions/cache@v4
+        with:
+            path: |
+                ~/.conan2
+                /Users/runner/.conan2/
+            key: deps-ci-ubuntu-clang-Release-${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('**/CMakePresets.json') }}
+            restore-keys: deps-ci-ubuntu-clang-Release
+
+      - name: conan detect profile
+        run: |
+            conan profile detect --force
+
+      - shell: bash
+        run: |
+            # GH-40558: reduce ASLR to avoid ASAN/LSAN crashes
+            sudo sysctl -w vm.mmap_rnd_bits=28
+
+      - name: Run CMake
+        uses: lukka/run-cmake@v10
+        with:
+            configurePreset: ci-sanitize-${{ matrix.sanitizer }}
+            buildPreset: ci-build
+            testPreset: ci-sanitize
+    tests:
+      needs: ["cache_deps"]
+
+      strategy:
+          matrix:
+              config: [ {name: ci-ubuntu-gcc,   os: ubuntu-latest},
+                        {name: ci-ubuntu-clang, os: ubuntu-latest},
+                        {name: ci-windows,      os: windows-latest},
+                        {name: ci-macos,        os: macos-latest}]
+              type: [tests]
+              build_type: [{config: Release, test_preset: ci-tests}]
+
+
+      timeout-minutes: 20
+      runs-on: ${{ matrix.config.os }}
+      name: ${{ matrix.type }} ${{ matrix.config.name }} ${{ matrix.build_type.config }}
+
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
+
+        - name: ccache
+          uses: hendrikmuhs/ccache-action@v1.2
+          with:
+            key: ${{ matrix.type }}-${{ matrix.config.name }}-${{ matrix.build_type.config }}
+
+        - name: Install deps
+          if: matrix.config.os == 'ubuntu-latest'
+          run: |
+            sudo apt-get update -q && sudo apt-get install clang-tidy cppcheck -y -q
+            pip install pyyaml
+
+        - name: Cmake version
+          run: cmake --version
+
+        - uses: actions/setup-python@v5
+          with:
+            python-version: '3.6.x - 3.11.x'
+
+        - name: get conan
+          uses: turtlebrowser/get-conan@main
+
+        - name: cache deps
+          uses: actions/cache@v4
+          with:
+              path: |
+                ~/.conan2
+                /Users/runner/.conan2/
+              key: deps-${{ matrix.config.name }}-${{ matrix.build_type.config }}-${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('**/CMakePresets.json') }}
+              restore-keys: deps-${{ matrix.config.name }}-${{ matrix.build_type.config }}
+
+        - name: conan detect profile
+          run: |
+            conan profile detect --force
+
+        - name: Run CMake
+          uses: lukka/run-cmake@v10
+          with:
+            configurePreset: ${{ matrix.config.name }}-${{ matrix.type }}
+            configurePresetAdditionalArgs: "['-DCMAKE_BUILD_TYPE=${{ matrix.build_type.config }}', '-DCMAKE_CONFIGURATION_TYPES=${{ matrix.build_type.config }}']"
+            buildPreset: ci-build
+            buildPresetAdditionalArgs: "['--config ${{ matrix.build_type.config }}']"
+            testPreset: ${{matrix.build_type.test_preset}}
