@@ -77,7 +77,7 @@ TEST_CASE("BackendServer provides correct api")
     {
         const auto resp = MakeRequest("/invalid", config);
         CHECK(resp.result() == http::status::not_found);
-        CHECK(resp.body() == "");
+        CHECK(resp.body() == "Not found");
     }
 
     SUBCASE("get /test")

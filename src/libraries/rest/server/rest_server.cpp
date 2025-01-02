@@ -89,7 +89,7 @@ namespace rest
             res.result(static_cast<uint16_t>(response.status_code.get()));
             res.set(http::field::server, "JustQueueIt");
             res.set(http::field::content_type, ParseContentType(response.content_type));
-            res.body() = response.body + "\n";
+            res.body() = response.body;
             res.prepare_payload();
             return res;
         }
