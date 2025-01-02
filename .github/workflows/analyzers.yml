@@ -15,7 +15,12 @@ jobs:
     if: github.repository_owner == 'Just-Queue-it' && github.event.workflow_run.conclusion == 'success'
 
     steps:
-    # - uses: haya14busa/action-workflow_run-status@main
+    - name: Commit Action Status
+      uses: LouisBrunner/checks-action@v2.0.0
+      with:
+        sha: ${{ github.event.workflow_run.head_sha }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        status: in_progress
 
     - uses: actions/checkout@v4
       with:
@@ -82,3 +87,11 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: |
         sonar-scanner --define sonar.scm.revision=${{ github.event.workflow_run.head_sha }} --define sonar.pullrequest.key=${{ steps.source-run-info.outputs.pullRequestNumber }} --define sonar.pullrequest.branch=${{ steps.source-run-info.outputs.sourceHeadBranch }} --define sonar.pullrequest.base=${{ steps.source-run-info.outputs.targetBranch }}
+
+    - uses: LouisBrunner/checks-action@v2.0.0
+      if: always()
+      with:
+        sha: ${{ github.event.workflow_run.head_sha }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        status: completed
+        conclusion: ${{ job.status }}
