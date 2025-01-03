@@ -33,9 +33,9 @@ namespace rest
     {
         switch (content_type)
         {
-        case rest::ContentType::ApplicationJson:
+        case rest::ContentType::APPLICATION_JSON:
             return rfl::json::write(v);
-        case rest::ContentType::TextPlain:
+        case rest::ContentType::TEXT_PLAIN:
             throw std::runtime_error("Unsupported accept content type");
         }
         ENSURE_MSG(false, "Invalid content type");
@@ -46,9 +46,9 @@ namespace rest
     {
         switch (content_type)
         {
-        case rest::ContentType::ApplicationJson:
+        case rest::ContentType::APPLICATION_JSON:
             return rfl::json::read<T>(v).value();
-        case rest::ContentType::TextPlain:
+        case rest::ContentType::TEXT_PLAIN:
             throw std::runtime_error("Unsupported request content type");
         }
         ENSURE_MSG(false, "Invalid content type");
@@ -69,8 +69,8 @@ namespace rest
         template<Serializable T>
         struct SerializableResponse
         {
-            const NotDefaultConstructible<Response::Status> status_code;
-            const NotDefaultConstructible<T>                body;
+            const NotDefaultConstructible<Response::Status>             status_code;
+            const std::variant<NotDefaultConstructible<T>, std::string> body;
         };
 
         Router() = default;
@@ -86,8 +86,8 @@ namespace rest
         void AddRoute(const std::string& path, Request::Method method, THandler&& handler)
         {
             using Traits        = typename utils::FunctionTraits<THandler>;
-            using FirstArgument = std::decay_t<typename Traits::template argument<0>>;
-            using Result        = std::decay_t<typename Traits::result>;
+            using FirstArgument = std::decay_t<typename Traits::template Argument<0>>;
+            using Result        = std::decay_t<typename Traits::Result>;
             if constexpr (std::same_as<FirstArgument, Request>)
             {
                 static_assert(std::same_as<Response, Result>);
@@ -109,18 +109,21 @@ namespace rest
                         }
                         catch (const std::exception& e)
                         {
-                            return Response{.status_code = Response::Status::BadRequest, .body = e.what(), .content_type = ContentType::TextPlain};
+                            return Response{.status_code = Response::Status::BAD_REQUEST, .body = e.what(), .content_type = ContentType::TEXT_PLAIN};
                         }
 
-                        const auto  res = handler(body.value(), params);
+                        const auto res = handler(body.value(), params);
+                        if (const auto body_str = std::get_if<std::string>(&res.body))
+                            return Response{.status_code = res.status_code, .body = *body_str, .content_type = ContentType::TEXT_PLAIN};
+
                         std::string body_str{};
                         try
                         {
-                            body_str = Serialize(res.body.get(), req.accept_content_type);
+                            body_str = Serialize(std::get<0>(res.body).Get(), req.accept_content_type);
                         }
                         catch (const std::exception& e)
                         {
-                            return Response{.status_code = Response::Status::BadRequest, .body = e.what(), .content_type = ContentType::TextPlain};
+                            return Response{.status_code = Response::Status::BAD_REQUEST, .body = e.what(), .content_type = ContentType::TEXT_PLAIN};
                         }
                         return Response{.status_code = res.status_code, .body = std::move(body_str), .content_type = req.accept_content_type};
                     });
@@ -129,7 +132,7 @@ namespace rest
                 {
                     static_assert(Deserializable<Result>);
                     return AddRoute(path, method, [handler = std::forward<THandler>(handler)](const FirstArgument& req, const Params& params) {
-                        return rest::Router::SerializableResponse<Result>{.status_code = rest::Response::Status::Ok, .body = handler(req, params)};
+                        return rest::Router::SerializableResponse<Result>{.status_code = rest::Response::Status::OK, .body = handler(req, params)};
                     });
                 }
             }

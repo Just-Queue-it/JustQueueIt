@@ -86,7 +86,7 @@ namespace rest
                 continue;
 
             if (match.size() != route.parameter_names.size() + 1)
-                return Response{.status_code = Response::Status::InternalServerError, .body = "Internal server error", .content_type = ContentType::TextPlain};
+                return Response{.status_code = Response::Status::INTERNAL_SERVER_ERROR, .body = "Internal server error", .content_type = ContentType::TEXT_PLAIN};
 
             for (size_t i = 0; i < route.parameter_names.size(); ++i)
                 params[route.parameter_names[i]] = match[i + 1]; // First group is at index 1
@@ -94,7 +94,7 @@ namespace rest
             // Find and call the handler
             auto handler_it = route.handlers.find(req.method);
             if (handler_it == route.handlers.end())
-                return Response{.status_code = Response::Status::MethodNotAllowed, .content_type = ContentType::TextPlain};
+                return Response{.status_code = Response::Status::METHOD_NOT_ALLOWED, .body = "Method not allowed", .content_type = ContentType::TEXT_PLAIN};
 
             try
             {
@@ -102,10 +102,10 @@ namespace rest
             }
             catch (const std::exception& e)
             {
-                return Response{.status_code = Response::Status::InternalServerError, .body = e.what(), .content_type = ContentType::TextPlain};
+                return Response{.status_code = Response::Status::INTERNAL_SERVER_ERROR, .body = e.what(), .content_type = ContentType::TEXT_PLAIN};
             }
         }
-        return Response{.status_code = Response::Status::NotFound, .content_type = ContentType::TextPlain};
+        return Response{.status_code = Response::Status::NOT_FOUND, .body = "Not found", .content_type = ContentType::TEXT_PLAIN};
     }
 
 } // namespace rest

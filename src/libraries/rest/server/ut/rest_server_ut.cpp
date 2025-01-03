@@ -24,9 +24,9 @@
 namespace beast = boost::beast;
 namespace http  = beast::http;
 namespace net   = boost::asio;
-using tcp       = net::ip::tcp;
+using tcp       = net::ip::tcp; // NOLINT
 
-auto MakeRequest(const std::string& path, const rest::ServerConfig& config, http::verb method = http::verb::get, std::string content_type = "text/plain", std::string accept_content_type = "text/plain")
+auto MakeRequest(const std::string& path, const rest::ServerConfig& config, http::verb method = http::verb::get, const std::string& content_type = "text/plain", const std::string& accept_content_type = "text/plain")
 {
     net::io_context ioc;
 
@@ -68,7 +68,7 @@ TEST_CASE("BackendServer provides correct api")
 {
     Routes mock;
     auto   router = rest::Router{};
-    router.AddRoute("/test", rest::Request::Method::Get, [&mock](const rest::Request& req, const rest::Router::Params& params) { return mock.Method(req, params); });
+    router.AddRoute("/test", rest::Request::Method::GET, [&mock](const rest::Request& req, const rest::Router::Params& params) { return mock.Method(req, params); });
 
     const auto config     = rest::ServerConfig();
     auto       stop_token = rest::StartServer(std::move(router), config);
@@ -77,17 +77,17 @@ TEST_CASE("BackendServer provides correct api")
     {
         const auto resp = MakeRequest("/invalid", config);
         CHECK(resp.result() == http::status::not_found);
-        CHECK(resp.body() == "");
+        CHECK(resp.body() == "Not found");
     }
 
     SUBCASE("get /test")
     {
-        REQUIRE_CALL(mock, Method(trompeloeil::_, trompeloeil::_)).RETURN(rest::Response{.status_code = rest::Response::Status::Ok, .body = "test", .content_type = rest::ContentType::ApplicationJson});
+        REQUIRE_CALL(mock, Method(trompeloeil::_, trompeloeil::_)).RETURN(rest::Response{.status_code = rest::Response::Status::OK, .body = "test", .content_type = rest::ContentType::APPLICATION_JSON});
 
         const auto resp = MakeRequest("/test", config);
         CHECK(resp.result() == http::status::ok);
         CHECK(resp.body() == "test");
-        CHECK(resp[http::field::content_type] == rest::ParseContentType(rest::ContentType::ApplicationJson));
+        CHECK(resp[http::field::content_type] == rest::ParseContentType(rest::ContentType::APPLICATION_JSON));
     }
     SUBCASE("invalid method")
     {

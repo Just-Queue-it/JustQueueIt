@@ -30,6 +30,12 @@
 
 namespace utils
 {
+    template<class... Ts>
+    struct Overloads : Ts...
+    {
+        using Ts::operator()...;
+    };
+
     struct ConvertibleToAny
     {
         ConvertibleToAny() = default;

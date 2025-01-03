@@ -26,14 +26,17 @@ namespace rest
     {
         switch (content_type)
         {
-        case rest::ContentType::TextPlain: return "text/plain";
-        case rest::ContentType::ApplicationJson: return "application/json";
+        case rest::ContentType::TEXT_PLAIN: return "text/plain";
+        case rest::ContentType::APPLICATION_JSON: return "application/json";
         }
         ENSURE_MSG(false, "Invalid content type");
     }
 
     std::optional<rest::ContentType> ParseContentType(std::string_view content_type)
     {
+        if (content_type.empty())
+            return rest::ContentType::APPLICATION_JSON;
+
         for (auto [_, type] : rfl::get_enumerator_array<rest::ContentType>())
             if (ParseContentType(type) == content_type)
                 return type;

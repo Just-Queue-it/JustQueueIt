@@ -29,13 +29,13 @@
 namespace beast = boost::beast;
 namespace http  = beast::http;
 namespace net   = boost::asio;
-using tcp       = boost::asio::ip::tcp;
+using tcp       = boost::asio::ip::tcp; // NOLINT
 
 namespace rest
 {
     namespace
     {
-        void LogError(std::exception_ptr e)
+        void LogError(const std::exception_ptr& e)
         {
             if (e)
             {
@@ -71,13 +71,14 @@ namespace rest
         {
             switch (method)
             {
-            case http::verb::get: return rest::Request::Method::Get;
-            case http::verb::post: return rest::Request::Method::Post;
-            case http::verb::put: return rest::Request::Method::Put;
-            case http::verb::delete_: return rest::Request::Method::Delete;
-            case http::verb::patch: return rest::Request::Method::Patch;
-            case http::verb::head: return rest::Request::Method::Head;
-            case http::verb::options: return rest::Request::Method::Options;
+            case http::verb::unknown:
+            case http::verb::get: return rest::Request::Method::GET;
+            case http::verb::post: return rest::Request::Method::POST;
+            case http::verb::put: return rest::Request::Method::PUT;
+            case http::verb::delete_: return rest::Request::Method::DELETE_;
+            case http::verb::patch: return rest::Request::Method::PATCH;
+            case http::verb::head: return rest::Request::Method::HEAD;
+            case http::verb::options: return rest::Request::Method::OPTIONS;
             default: return {};
             }
         }
@@ -85,7 +86,7 @@ namespace rest
         boost::beast::http::response<boost::beast::http::string_body> CreateResponse(const rest::Response& response)
         {
             boost::beast::http::response<boost::beast::http::string_body> res;
-            res.result(static_cast<uint16_t>(response.status_code.get()));
+            res.result(static_cast<uint16_t>(response.status_code.Get()));
             res.set(http::field::server, "JustQueueIt");
             res.set(http::field::content_type, ParseContentType(response.content_type));
             res.body() = response.body;
@@ -97,15 +98,15 @@ namespace rest
         {
             const auto method = ParseMethod(req.method());
             if (!method)
-                return Response{.status_code = Response::Status::MethodNotAllowed, .body = "Unsupported or unknown method", .content_type = rest::ContentType::TextPlain};
+                return Response{.status_code = Response::Status::METHOD_NOT_ALLOWED, .body = "Unsupported or unknown method", .content_type = rest::ContentType::TEXT_PLAIN};
 
             const auto content_type = ParseContentType(req[http::field::content_type]);
             if (!content_type)
-                return Response{.status_code = Response::Status::BadRequest, .body = "Unsupported or unknown content type", .content_type = rest::ContentType::TextPlain};
+                return Response{.status_code = Response::Status::BAD_REQUEST, .body = "Unsupported or unknown content type", .content_type = rest::ContentType::TEXT_PLAIN};
 
-            const auto accept_content_type = ParseContentType(req[http::field::accept]);
+            const auto accept_content_type = req[http::field::accept] != "*/*" ? ParseContentType(req[http::field::accept]) : content_type;
             if (!accept_content_type)
-                return Response{.status_code = Response::Status::BadRequest, .body = "Unsupported or unknown accept content type", .content_type = rest::ContentType::TextPlain};
+                return Response{.status_code = Response::Status::BAD_REQUEST, .body = "Unsupported or unknown accept content type", .content_type = rest::ContentType::TEXT_PLAIN};
 
             return router.Route({.method = method.value(), .path = req.target(), .body = req.body(), .content_type = content_type.value(), .accept_content_type = accept_content_type.value()});
         }
